@@ -85,6 +85,7 @@ export default function Home() {
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [isProcessingCsv, setIsProcessingCsv] = useState(false)
   const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null)
+  const [panToVehicleMap, setPanToVehicleMap] = useState<Map<string, string>>(new Map())
   const batchContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -159,6 +160,90 @@ export default function Home() {
     }
   }
 
+  const parseCsvFile = async (file: File): Promise<Map<string, string>> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      const panToVehicleMap = new Map<string, string>()
+      
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string
+          const lines = text.split('\n').filter(line => line.trim())
+          
+          if (lines.length === 0) {
+            resolve(panToVehicleMap)
+            return
+          }
+          
+          // Helper function to parse CSV line
+          const parseCsvLine = (line: string): string[] => {
+            const values: string[] = []
+            let current = ''
+            let inQuotes = false
+            
+            for (let j = 0; j < line.length; j++) {
+              const char = line[j]
+              if (char === '"') {
+                inQuotes = !inQuotes
+              } else if (char === ',' && !inQuotes) {
+                values.push(current.trim().replace(/^"|"$/g, ''))
+                current = ''
+              } else {
+                current += char
+              }
+            }
+            values.push(current.trim().replace(/^"|"$/g, '')) // Push last value
+            return values
+          }
+          
+          // Parse header row
+          const headerLine = lines[0].toLowerCase()
+          const hasHeader = headerLine.includes('pan') || headerLine.includes('vehicle')
+          const headers = hasHeader ? parseCsvLine(lines[0]) : null
+          
+          // Find column indices
+          let panIndex = 0
+          let vehicleIndex = 2
+          
+          if (headers) {
+            panIndex = headers.findIndex(h => h.toLowerCase().includes('pan'))
+            vehicleIndex = headers.findIndex(h => h.toLowerCase().includes('vehicle'))
+            
+            // Defaults if not found
+            if (panIndex === -1) panIndex = 0
+            if (vehicleIndex === -1) vehicleIndex = 2
+          }
+          
+          // Start from data rows (skip header if exists)
+          const startIndex = hasHeader ? 1 : 0
+          
+          for (let i = startIndex; i < lines.length; i++) {
+            const line = lines[i].trim()
+            if (!line) continue
+            
+            const values = parseCsvLine(line)
+            
+            if (values.length > panIndex && values.length > vehicleIndex) {
+              const pan = values[panIndex]?.trim().toUpperCase()
+              const vehicleNumber = values[vehicleIndex]?.trim().toUpperCase()
+              
+              if (pan && vehicleNumber) {
+                panToVehicleMap.set(pan, vehicleNumber)
+              }
+            }
+          }
+          
+          resolve(panToVehicleMap)
+        } catch (error) {
+          reject(error)
+        }
+      }
+      
+      reader.onerror = () => reject(new Error('Failed to read CSV file'))
+      reader.readAsText(file)
+    })
+  }
+
   const handleCsvUpload = async () => {
     if (!csvFile) {
       alert('Please select a CSV file')
@@ -167,6 +252,10 @@ export default function Home() {
 
     setIsProcessingCsv(true)
     try {
+      // First, parse the CSV to get vehicle number mappings
+      const vehicleMap = await parseCsvFile(csvFile)
+      setPanToVehicleMap(vehicleMap)
+      
       const formData = new FormData()
       formData.append('file', csvFile)
 
@@ -181,8 +270,8 @@ export default function Home() {
         const errorData = await response.json().catch(() => ({ error: response.statusText }))
         const errorMessage = errorData.error || errorData.details || `API request failed: ${response.statusText}`
         
-        if (response.status === 504 || errorMessage.includes('timeout')) {
-          throw new Error('The request timed out. The CSV file may be too large or the API is taking too long. Please try with a smaller file or try again later.')
+        if (response.status === 504 || response.status === 408 || errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('timed out')) {
+          throw new Error(errorMessage || 'The request timed out. Large CSV files may take longer to process. Please try with a smaller file (50-100 records) or contact support.')
         }
         
         throw new Error(errorMessage)
@@ -192,14 +281,21 @@ export default function Home() {
       setApiResponse(data)
 
       if (data.success) {
-        await generateBatchPngs(data)
+        await generateBatchPngs(data, vehicleMap)
       } else {
         alert('No successful PAN verifications found. Please check the CSV file.')
       }
     } catch (error: any) {
       console.error('Error processing CSV:', error)
-      if (error.name === 'TimeoutError' || error.name === 'AbortError') {
-        alert('Request timed out. The CSV file may be too large or the API is taking too long. Please try with a smaller file or try again later.')
+      
+      // Check if it's a timeout error
+      const isTimeout = error.name === 'TimeoutError' || 
+                       error.name === 'AbortError' || 
+                       error.message?.toLowerCase().includes('timeout') ||
+                       error.message?.toLowerCase().includes('timed out')
+      
+      if (isTimeout) {
+        alert('Request timed out. This usually happens with large CSV files.\n\nSuggested solutions:\n1. Split your CSV into smaller files (50-100 records each)\n2. Check your internet connection\n3. Try again - sometimes the server needs a moment\n4. Contact support if the issue persists')
       } else {
         alert('Error processing CSV: ' + (error as Error).message)
       }
@@ -208,7 +304,7 @@ export default function Home() {
     }
   }
 
-  const generateBatchPngs = async (apiResponse: ApiResponse) => {
+  const generateBatchPngs = async (apiResponse: ApiResponse, vehicleMap: Map<string, string>) => {
     if (!batchContainerRef.current) return
 
     try {
@@ -321,7 +417,11 @@ export default function Home() {
           }, 'image/png')
         })
 
-        zip.file(`${data.pan.toUpperCase()}.png`, blob)
+        // Use vehicle number as filename if available, otherwise use PAN number
+        const pan = data.pan.toUpperCase()
+        const vehicleNumber = vehicleMap.get(pan) || pan
+        const fileName = `${vehicleNumber}.png`
+        zip.file(fileName, blob)
 
         // Clean up
         tempContainer.remove()
@@ -335,7 +435,7 @@ export default function Home() {
       // Create CSV with status information
       const csvRows: string[] = []
       // CSV Header
-      csvRows.push('PAN Number,Status,Message,Name,Gender,Date of Birth')
+      csvRows.push('Vehicle Number,PAN Number,Status,Message,Name,Gender,Date of Birth')
 
       // Helper function to escape CSV values
       const escapeCsv = (value: string) => {
@@ -350,12 +450,13 @@ export default function Home() {
         apiResponse.successData.forEach((data) => {
           const name = (data.name_pan_card || data.registered_name || data.name_provided || '-').toUpperCase()
           const pan = (data.pan || '-').toUpperCase()
+          const vehicleNumber = vehicleMap.get(pan) || '-'
           const status = data.status || 'VALID'
           const message = data.message || 'PAN verified successfully'
           const gender = (data.gender || '-').toUpperCase()
           const dob = data.date_of_birth || '-'
           
-          csvRows.push(`${escapeCsv(pan)},${escapeCsv(status)},${escapeCsv(message)},${escapeCsv(name)},${escapeCsv(gender)},${escapeCsv(dob)}`)
+          csvRows.push(`${escapeCsv(vehicleNumber)},${escapeCsv(pan)},${escapeCsv(status)},${escapeCsv(message)},${escapeCsv(name)},${escapeCsv(gender)},${escapeCsv(dob)}`)
         })
       }
 
@@ -363,10 +464,11 @@ export default function Home() {
       if (apiResponse.failedData) {
         apiResponse.failedData.forEach((failed) => {
           const pan = failed.pan.toUpperCase()
+          const vehicleNumber = vehicleMap.get(pan) || '-'
           const status = 'INVALID'
           const message = failed.error?.message || 'Verification failed'
           
-          csvRows.push(`${escapeCsv(pan)},${escapeCsv(status)},${escapeCsv(message)},-,-,-`)
+          csvRows.push(`${escapeCsv(vehicleNumber)},${escapeCsv(pan)},${escapeCsv(status)},${escapeCsv(message)},-,-,-`)
         })
       }
 
