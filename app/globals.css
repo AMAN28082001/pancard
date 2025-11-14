@@ -1,0 +1,376 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background: #e5e7eb;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  color: #1f2937;
+  margin-bottom: 30px;
+  font-size: 2.5em;
+  font-weight: 700;
+}
+
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+@media (max-width: 968px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Input Section */
+.input-section {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.input-section h2 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.json-input {
+  width: 100%;
+  height: 300px;
+  padding: 15px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  resize: vertical;
+  margin-bottom: 15px;
+}
+
+.json-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+button {
+  padding: 12px 24px;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.generate-btn {
+  background: #667eea;
+  color: white;
+}
+
+.generate-btn:hover {
+  background: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.sample-btn {
+  background: #48bb78;
+  color: white;
+}
+
+.sample-btn:hover {
+  background: #38a169;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+}
+
+/* Card Actions */
+.card-actions {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.download-btn {
+  background: #f59e0b;
+  color: white;
+  padding: 12px 24px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.download-btn:hover {
+  background: #d97706;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4);
+}
+
+.download-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* PAN Card */
+.pan-card {
+  background: white;
+  width: 1179px;
+  height: 978px;
+  margin: 0 auto;
+  padding: 50px 45px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Arial', 'Helvetica', sans-serif;
+  box-sizing: border-box;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 80px;
+  gap: 60px;
+}
+
+.emblem-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.emblem-image {
+  width: 255px;
+  height: 183px;
+  object-fit: contain;
+  display: block;
+  margin-top: -10px;
+  margin-left: -70px;
+}
+
+.motto {
+  margin-top: 14px;
+  font-size: 21px;
+  color: #000;
+  font-weight: 600;
+  text-align: left;
+  letter-spacing: 1px;
+  line-height: 1.2;
+  font-family: 'Arial', 'Helvetica', sans-serif;
+  width: 100%;
+}
+
+.title-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 50px;
+  margin-right: 500px;
+}
+
+.pan-title {
+  font-size: 43px;
+  font-weight: 600;
+  color: #303030;
+  letter-spacing: 1px;
+  line-height: 1;
+  text-align: left;
+  font-family: 'Arial', 'Helvetica', sans-serif;
+  text-transform: uppercase;
+padding-left: -110px;  
+}
+
+.card-content {
+  flex: 1;
+  margin-bottom: 50px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin-left: 20px;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 300px 40px 1fr;
+  align-items: center;
+  font-family: 'Arial', 'Helvetica', sans-serif;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #3a3e47;
+  font-size: 36px;
+  text-transform: uppercase;
+}
+
+.detail-colon {
+  font-weight: 700;
+  color: #3a3e47;;
+  font-size: 36px;
+  text-align: center;
+}
+
+.detail-value {
+  color: #3a3e47;
+  font-size: 36px;
+  font-weight: 400;
+  font-family: 'Arial', 'Helvetica', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 25px;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 60px;
+  gap: 32px;
+}
+
+.digilocker-section {
+  flex-shrink: 0;
+}
+
+.digilocker-logo {
+  width: 520px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.qr-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.qr-code {
+  width: 230px;
+  height: 230px;
+  object-fit: contain;
+  /* border: 5px solid #000; */
+  background:transparent;
+  /* padding: 10px; */
+  display: block;
+  border-radius: 0;
+}
+
+.tap-to-zoom {
+  font-size: 28px;
+  color: #4b5563;
+  font-weight: 500;
+  text-align: center;
+  font-family: 'Arial', 'Helvetica', sans-serif;
+}
+
+.hr-line {
+  border: none;
+  border-top: 1px solid #ededed;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 0;
+}
+
+/* CSV Upload Section */
+.csv-section {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.csv-section h2 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 1.5em;
+}
+
+.csv-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.csv-upload-area input[type="file"] {
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.csv-upload-area input[type="file"]:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.upload-btn {
+  background: #10b981;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.upload-btn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+}
+
+.upload-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.api-response {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f3f4f6;
+  border-radius: 5px;
+  border-left: 4px solid #10b981;
+}
+
+.api-response p {
+  margin: 8px 0;
+  color: #374151;
+  font-size: 14px;
+}
+
+.api-response strong {
+  color: #1f2937;
+}
