@@ -22,7 +22,7 @@ RUN npm run build
 # 2. Production Runtime Stage
 # ---------------------------
 FROM node:18-alpine AS runner
-
+ 
 WORKDIR /app
 
 ENV NODE_ENV=production

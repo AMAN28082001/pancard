@@ -124,7 +124,7 @@ export default function Home() {
     try {
       // Dynamically import html2canvas
       const html2canvas = (await import('html2canvas')).default
-      
+
       const panCardElement = document.getElementById(containerId)
       if (!panCardElement) {
         throw new Error('PAN card element not found')
@@ -166,7 +166,7 @@ export default function Home() {
     await downloadPanCard(panData!, 'panCard', setIsDownloading)
   }
 
-  const handleSinglePanSearch = async () => {
+  const handleSinglePanSearch1 = async () => {
     if (!singlePanInput.trim()) {
       alert('Please enter a PAN number or name')
       return
@@ -174,7 +174,14 @@ export default function Home() {
 
     setIsDownloadingSingle(true)
     try {
-      // Search in previously processed CSV data if available
+
+      const response = await fetch('/api/single-pan', {
+        method: 'POST',
+        body: JSON.stringify(singlePanInput)
+      })
+      const data: ApiResponse = await response.json()
+      await downloadPanCard(data, 'panCard', setIsDownloadingSingle)
+      // // Search in previously processed CSV data if available
       if (apiResponse?.successData) {
         const found = apiResponse.successData.find(
           (item) =>
@@ -195,13 +202,13 @@ export default function Home() {
 
       // If not found in CSV data, check if it's in the current panData
       if (panData && (panData.pan?.toUpperCase() === singlePanInput.trim().toUpperCase() ||
-          panData.name_pan_card?.toUpperCase().includes(singlePanInput.trim().toUpperCase()) ||
-          panData.registered_name?.toUpperCase().includes(singlePanInput.trim().toUpperCase()))) {
+        panData.name_pan_card?.toUpperCase().includes(singlePanInput.trim().toUpperCase()) ||
+        panData.registered_name?.toUpperCase().includes(singlePanInput.trim().toUpperCase()))) {
         await downloadPanCard(panData, 'panCard', setIsDownloadingSingle)
         return
       }
 
-      alert('PAN number or name not found. Please ensure you have uploaded a CSV file with this PAN, or use the JSON input section to enter PAN data first.')
+      // alert('PAN number or name not found. Please ensure you have uploaded a CSV file with this PAN, or use the JSON input section to enter PAN data first.')
     } catch (error) {
       console.error('Error searching PAN:', error)
       alert('Error searching for PAN: ' + (error as Error).message)
@@ -209,6 +216,37 @@ export default function Home() {
       setIsDownloadingSingle(false)
     }
   }
+
+  const handleSinglePanSearch = async () => {
+    if (!singlePanInput.trim()) {
+      alert('Please enter a PAN number or name')
+      return
+    }
+
+    setIsDownloadingSingle(true)
+    try {
+      const response = await fetch('/api/single-pan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ pan: singlePanInput })
+      })
+
+
+      const data: ApiResponse = await response.json()
+      console.log(data.data, "<--- pan data")
+      setSinglePanData(data.data)
+      await downloadPanCard(data.data, 'singlePanCard', setIsDownloadingSingle)
+
+    } catch (error) {
+      console.error('Error searching PAN:', error)
+      alert('Error searching for PAN: ' + (error as Error).message)
+    } finally {
+      setIsDownloadingSingle(false)
+    }
+  }
+
 
   const handleCsvUpload = async () => {
     if (!csvFile) {
@@ -231,11 +269,11 @@ export default function Home() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: response.statusText }))
         const errorMessage = errorData.error || errorData.details || `API request failed: ${response.statusText}`
-        
+
         if (response.status === 504 || errorMessage.includes('timeout')) {
           throw new Error('The request timed out. The CSV file may be too large or the API is taking too long. Please try with a smaller file or try again later.')
         }
-        
+
         throw new Error(errorMessage)
       }
 
@@ -405,7 +443,7 @@ export default function Home() {
           const message = data.message || 'PAN verified successfully'
           const gender = (data.gender || '-').toUpperCase()
           const dob = data.date_of_birth || '-'
-          
+
           csvRows.push(`${escapeCsv(pan)},${escapeCsv(status)},${escapeCsv(message)},${escapeCsv(name)},${escapeCsv(gender)},${escapeCsv(dob)}`)
         })
       }
@@ -416,7 +454,7 @@ export default function Home() {
           const pan = failed.pan.toUpperCase()
           const status = 'INVALID'
           const message = failed.error?.message || 'Verification failed'
-          
+
           csvRows.push(`${escapeCsv(pan)},${escapeCsv(status)},${escapeCsv(message)},-,-,-`)
         })
       }
@@ -453,7 +491,7 @@ export default function Home() {
   return (
     <div className="container">
       <h1>PAN Card Generator</h1>
-      
+
       {/* CSV Upload Section */}
       <div className="csv-section">
         <h2>Bulk PAN Card Generation from CSV</h2>
