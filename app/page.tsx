@@ -162,6 +162,117 @@ export default function Home() {
     }
   }
 
+  const downloadSinglePan = async (panInfo: PanData) => {
+    if (!panInfo || !panInfo.pan) {
+      alert('Invalid PAN data')
+      return
+    }
+
+    try {
+      const html2canvas = (await import('html2canvas')).default
+
+      // Create offscreen container
+      const tempContainer = document.createElement('div')
+      tempContainer.style.position = 'fixed'
+      tempContainer.style.left = '0'
+      tempContainer.style.top = '0'
+      tempContainer.style.width = '1179px'
+      tempContainer.style.height = '978px'
+      tempContainer.style.zIndex = '-1'
+      tempContainer.style.visibility = 'visible'
+
+      document.body.appendChild(tempContainer)
+
+      // Insert SAME HTML template used in bulk export
+      tempContainer.innerHTML = `
+      <div class="pan-card" style="position: relative;">
+        <div class="card-header">
+          <div class="emblem-section">
+            <img src="/images/ashokicon.png" alt="Emblem of India" class="emblem-image" />
+          </div>
+          <div class="title-section">
+            <div class="pan-title">PAN CARD</div>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="detail-row">
+            <span class="detail-label">Name</span>
+            <span class="detail-colon">:</span>
+            <span class="detail-value">${(panInfo.name_pan_card || panInfo.registered_name || panInfo.name_provided || '-').toUpperCase()}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Gender</span>
+            <span class="detail-colon">:</span>
+            <span class="detail-value">${(panInfo.gender || '-').toUpperCase()}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">DOB</span>
+            <span class="detail-colon">:</span>
+            <span class="detail-value">${panInfo.date_of_birth || '-'}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Pan Number</span>
+            <span class="detail-colon">:</span>
+            <span class="detail-value">${(panInfo.pan || '-').toUpperCase()}</span>
+          </div>
+        </div>
+        <hr class="hr-line" />
+        <div class="card-footer">
+          <div class="digilocker-section">
+            <img src="/images/digiicon.png" alt="DigiLocker" class="digilocker-logo" />
+          </div>
+          <div class="qr-section">
+            <img src="/images/qr.png" alt="QR Code" class="qr-code" />
+            <div class="tap-to-zoom">Tap to Zoom</div>
+          </div>
+        </div>
+      </div>
+    `
+
+      // Wait for all images to load
+      const imgs = tempContainer.querySelectorAll('img')
+      await Promise.all(
+        Array.from(imgs).map(img => {
+          if (img.complete) return Promise.resolve()
+          return new Promise(res => {
+            img.onload = res
+            img.onerror = res
+          })
+        })
+      )
+
+      await new Promise(res => setTimeout(res, 300))
+
+      const cardElement = tempContainer.querySelector(".pan-card") as HTMLElement
+
+      const canvas = await html2canvas(cardElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        width: 1179,
+        height: 978
+      })
+
+      canvas.toBlob(blob => {
+        if (!blob) return
+
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `${panInfo && panInfo.pan && panInfo.pan.toUpperCase()}.png`
+        link.click()
+        URL.revokeObjectURL(url)
+      })
+
+      tempContainer.remove()
+    } catch (err) {
+      console.error("Single PAN Download Error:", err)
+      alert("Error generating PNG")
+    }
+  }
+
+
   const handleDownload = async () => {
     await downloadPanCard(panData!, 'panCard', setIsDownloading)
   }
@@ -219,33 +330,36 @@ export default function Home() {
 
   const handleSinglePanSearch = async () => {
     if (!singlePanInput.trim()) {
-      alert('Please enter a PAN number or name')
+      alert('Please enter a PAN number')
       return
     }
 
     setIsDownloadingSingle(true)
+
     try {
       const response = await fetch('/api/single-pan', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pan: singlePanInput })
       })
 
+      const result = await response.json()
 
-      const data: ApiResponse = await response.json()
-      console.log(data.data, "<--- pan data")
-      setSinglePanData(data.data)
-      await downloadPanCard(data.data, 'singlePanCard', setIsDownloadingSingle)
+      if (!result.success) throw new Error(result.error)
 
-    } catch (error) {
-      console.error('Error searching PAN:', error)
-      alert('Error searching for PAN: ' + (error as Error).message)
+      const panInfo = result.data
+      setSinglePanData(panInfo)
+
+      await downloadSinglePan(panInfo)
+
+    } catch (err) {
+      alert("Error: " + (err as any).message)
     } finally {
       setIsDownloadingSingle(false)
     }
   }
+
+
 
 
   const handleCsvUpload = async () => {
