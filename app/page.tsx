@@ -85,6 +85,9 @@ export default function Home() {
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [isProcessingCsv, setIsProcessingCsv] = useState(false)
   const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null)
+  const [singlePanInput, setSinglePanInput] = useState('')
+  const [singlePanData, setSinglePanData] = useState<PanData | null>(null)
+  const [isDownloadingSingle, setIsDownloadingSingle] = useState(false)
   const batchContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -111,9 +114,9 @@ export default function Home() {
     setPanData(sampleData)
   }
 
-  const handleDownload = async () => {
-    if (!panData || !panData.pan) {
-      alert('Please generate a PAN card first')
+  const downloadPanCard = async (data: PanData, containerId: string, setIsDownloading: (value: boolean) => void) => {
+    if (!data || !data.pan) {
+      alert('PAN number is required')
       return
     }
 
@@ -122,7 +125,7 @@ export default function Home() {
       // Dynamically import html2canvas
       const html2canvas = (await import('html2canvas')).default
       
-      const panCardElement = document.getElementById('panCard')
+      const panCardElement = document.getElementById(containerId)
       if (!panCardElement) {
         throw new Error('PAN card element not found')
       }
@@ -145,7 +148,7 @@ export default function Home() {
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = `${panData.pan}.png`
+        link.download = `${data.pan?.toUpperCase() || 'pan-card'}.png`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
@@ -156,6 +159,54 @@ export default function Home() {
       console.error('Error generating PNG:', error)
       alert('Error generating PNG. Please try again.')
       setIsDownloading(false)
+    }
+  }
+
+  const handleDownload = async () => {
+    await downloadPanCard(panData!, 'panCard', setIsDownloading)
+  }
+
+  const handleSinglePanSearch = async () => {
+    if (!singlePanInput.trim()) {
+      alert('Please enter a PAN number or name')
+      return
+    }
+
+    setIsDownloadingSingle(true)
+    try {
+      // Search in previously processed CSV data if available
+      if (apiResponse?.successData) {
+        const found = apiResponse.successData.find(
+          (item) =>
+            item.pan?.toUpperCase() === singlePanInput.trim().toUpperCase() ||
+            item.name_pan_card?.toUpperCase().includes(singlePanInput.trim().toUpperCase()) ||
+            item.registered_name?.toUpperCase().includes(singlePanInput.trim().toUpperCase()) ||
+            item.name_provided?.toUpperCase().includes(singlePanInput.trim().toUpperCase())
+        )
+
+        if (found) {
+          setSinglePanData(found)
+          // Wait for state to update and DOM to render
+          await new Promise(resolve => setTimeout(resolve, 300))
+          await downloadPanCard(found, 'singlePanCard', setIsDownloadingSingle)
+          return
+        }
+      }
+
+      // If not found in CSV data, check if it's in the current panData
+      if (panData && (panData.pan?.toUpperCase() === singlePanInput.trim().toUpperCase() ||
+          panData.name_pan_card?.toUpperCase().includes(singlePanInput.trim().toUpperCase()) ||
+          panData.registered_name?.toUpperCase().includes(singlePanInput.trim().toUpperCase()))) {
+        await downloadPanCard(panData, 'panCard', setIsDownloadingSingle)
+        return
+      }
+
+      alert('PAN number or name not found. Please ensure you have uploaded a CSV file with this PAN, or use the JSON input section to enter PAN data first.')
+    } catch (error) {
+      console.error('Error searching PAN:', error)
+      alert('Error searching for PAN: ' + (error as Error).message)
+    } finally {
+      setIsDownloadingSingle(false)
     }
   }
 
@@ -431,6 +482,48 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Single PAN Download Section */}
+      <div className="csv-section">
+        <h2>Download Single PAN Card</h2>
+        <div className="csv-upload-area">
+          <input
+            type="text"
+            placeholder="Enter PAN number or name to search"
+            value={singlePanInput}
+            onChange={(e) => setSinglePanInput(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px',
+              marginBottom: '15px',
+              border: '2px solid #ddd',
+              borderRadius: '5px',
+              fontSize: '14px'
+            }}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSinglePanSearch()
+              }
+            }}
+          />
+          <button
+            className="upload-btn"
+            onClick={handleSinglePanSearch}
+            disabled={isDownloadingSingle || !singlePanInput.trim()}
+          >
+            {isDownloadingSingle ? 'Generating...' : 'Search and Download'}
+          </button>
+          <p style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
+            Note: Search for a PAN from uploaded CSV data or use the JSON input section below to enter PAN data first.
+          </p>
+          {singlePanData && (
+            <div style={{ marginTop: '15px', padding: '10px', background: '#f0f9ff', borderRadius: '5px' }}>
+              <p><strong>Found:</strong> {singlePanData.pan}</p>
+              <p><strong>Name:</strong> {singlePanData.name_pan_card || singlePanData.registered_name || singlePanData.name_provided}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="main-content">
         <div className="input-section">
           <h2>Enter PAN Card Data</h2>
@@ -461,6 +554,13 @@ export default function Home() {
           <PanCard data={panData || undefined} />
         </div>
       </div>
+
+      {/* Single PAN Card Preview (Hidden, used for download) */}
+      {singlePanData && (
+        <div style={{ position: 'absolute', left: '-9999px', top: '0', visibility: 'hidden', width: '1179px', height: '978px' }}>
+          <PanCard data={singlePanData} cardId="singlePanCard" />
+        </div>
+      )}
 
       {/* Hidden container for batch processing */}
       <div

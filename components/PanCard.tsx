@@ -13,9 +13,10 @@ interface PanCardData {
 
 interface PanCardProps {
   data?: PanCardData  // Made optional to allow default data
+  cardId?: string  // Optional ID for the card container
 }
 
-export default function PanCard({ data }: PanCardProps) {
+export default function PanCard({ data, cardId = 'panCard' }: PanCardProps) {
   // Default data from OCR extraction (fallback if no prop provided)
   const defaultData: PanCardData = {
     name_provided: 'AMAN KUMAR RAJAK',  // Using name_provided as it fits the priority chain
@@ -34,7 +35,7 @@ export default function PanCard({ data }: PanCardProps) {
   const pan = (effectiveData.pan || '-').toUpperCase()
 
   return (
-    <div className="pan-card" id="panCard">
+    <div className="pan-card" id={cardId}>
       <div className="card-header">
         <div className="emblem-section">
           <Image
