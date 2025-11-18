@@ -148,7 +148,7 @@ export default function Home() {
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = `${data.pan?.toUpperCase() || 'pan-card'}.png`
+        link.download = `${data?.pan?.toUpperCase() || 'pan-card'}.png`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
@@ -198,12 +198,12 @@ export default function Home() {
           <div class="detail-row">
             <span class="detail-label">Name</span>
             <span class="detail-colon">:</span>
-            <span class="detail-value">${(panInfo.name_pan_card || panInfo.registered_name || panInfo.name_provided || '-').toUpperCase()}</span>
+            <span class="detail-value">${(panInfo.name_pan_card || panInfo.registered_name || panInfo.name_provided || '-')?.toUpperCase()}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Gender</span>
             <span class="detail-colon">:</span>
-            <span class="detail-value">${(panInfo.gender || '-').toUpperCase()}</span>
+            <span class="detail-value">${(panInfo.gender || '-')?.toUpperCase()}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">DOB</span>
@@ -213,7 +213,7 @@ export default function Home() {
           <div class="detail-row">
             <span class="detail-label">Pan Number</span>
             <span class="detail-colon">:</span>
-            <span class="detail-value">${(panInfo.pan || '-').toUpperCase()}</span>
+            <span class="detail-value">${(panInfo.pan || '-')?.toUpperCase()}</span>
           </div>
         </div>
         <hr class="hr-line" />
@@ -260,7 +260,7 @@ export default function Home() {
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = `${panInfo && panInfo.pan && panInfo.pan.toUpperCase()}.png`
+        link.download = `${panInfo && panInfo.pan && panInfo.pan?.toUpperCase()}.png`
         link.click()
         URL.revokeObjectURL(url)
       })
